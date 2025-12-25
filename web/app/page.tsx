@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Upload, Play, Film, Search, Loader2 } from "lucide-react";
+import { Upload, Play, Film, Search, Loader2, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import Link from "next/link";
@@ -50,6 +50,18 @@ export default function LandingPage() {
     } catch (err) {
       console.error("Upload failed", err);
       setUploading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this recording? This will also remove all detected faces and associated files.")) return;
+
+    try {
+      await axios.delete(`${API_URL}/media/${id}`);
+      setMediaList(prev => prev.filter(m => m.id !== id));
+    } catch (err) {
+      console.error("Delete failed", err);
+      alert("Failed to delete media. Please try again.");
     }
   };
 
@@ -151,23 +163,37 @@ export default function LandingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
               >
-                <Link href={`/${m.id}`}>
-                  <div className="glass rounded-2xl border border-white/5 group overflow-hidden cursor-pointer hover:border-accent/30 transition-all">
-                    <div className="aspect-video bg-black relative">
-                      <video 
-                        src={`${API_URL}${m.url}#t=1`} 
-                        className="w-full h-full object-cover opacity-50 group-hover:scale-110 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Play className="w-12 h-12 text-white fill-white" />
+                  <div className="glass rounded-2xl border border-white/5 group overflow-hidden cursor-pointer hover:border-accent/30 transition-all relative">
+                    <Link href={`/${m.id}`}>
+                      <div className="aspect-video bg-black relative">
+                        <video 
+                          src={`${API_URL}${m.url}#t=1`} 
+                          className="w-full h-full object-cover opacity-50 group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Play className="w-12 h-12 text-white fill-white" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="p-4 flex items-center justify-between">
-                      <span className="text-sm font-mono text-white/40 truncate max-w-[200px]">{m.id}</span>
-                      <span className="text-xs text-accent font-bold uppercase tracking-wider">Open</span>
-                    </div>
+                    </Link>
+                    
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDelete(m.id);
+                      }}
+                      className="absolute top-4 right-4 p-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl backdrop-blur-md border border-red-500/20 opacity-0 group-hover:opacity-100 transition-all z-10"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+
+                    <Link href={`/${m.id}`}>
+                      <div className="p-4 flex items-center justify-between">
+                        <span className="text-sm font-mono text-white/40 truncate max-w-[200px]">{m.id}</span>
+                        <span className="text-xs text-accent font-bold uppercase tracking-wider">Open</span>
+                      </div>
+                    </Link>
                   </div>
-                </Link>
               </motion.div>
             ))}
             {mediaList.length === 0 && (

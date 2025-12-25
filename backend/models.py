@@ -14,14 +14,14 @@ class Media(Base):
 class FaceTrack(Base):
     __tablename__ = "face_tracks"
     id = Column(Integer, primary_key=True)
-    media_id = Column(String, ForeignKey("media.id"))
+    media_id = Column(String, ForeignKey("media.id", ondelete="CASCADE"))
     start_ts = Column(Float)
     end_ts = Column(Float)
 
 class FaceEmbedding(Base):
     __tablename__ = "face_embeddings"
     id = Column(Integer, primary_key=True)
-    track_id = Column(Integer, ForeignKey("face_tracks.id"))
+    track_id = Column(Integer, ForeignKey("face_tracks.id", ondelete="CASCADE"))
     embedding = Column(Vector(512))
 
 Index(

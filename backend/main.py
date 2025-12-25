@@ -192,6 +192,31 @@ async def upload_media(file: UploadFile = File(...)):
     finally:
         session.close()
 
+@app.delete("/media/{media_id}")
+async def delete_media(media_id: str):
+    session: Session = SessionLocal()
+    try:
+        m = session.query(Media).filter(Media.id == media_id).first()
+        if not m:
+            raise HTTPException(404, "Media not found")
+
+        # Delete the file from storage
+        path = os.path.join(UPLOAD_DIR, m.filename)
+        if os.path.exists(path):
+            os.remove(path)
+            print(f"Deleted file {path}")
+        else:
+            print(f"File {path} not found on disk, skipping file deletion.")
+
+        # Delete from DB (cascading handles tracks and embeddings)
+        session.delete(m)
+        session.commit()
+        print(f"Deleted media record {media_id} and associated data from DB.")
+
+        return {"status": "ok", "message": f"Media {media_id} deleted"}
+    finally:
+        session.close()
+
 # -------------------------------------------------------------------
 # Search Faces Inside a Media
 # -------------------------------------------------------------------
