@@ -1,0 +1,48 @@
+-f https://download.pytorch.org/whl/cpu/torch_stable.html
+
+# CPU-only PyTorch - compatible versions
+torch==2.2.1+cpu
+torchvision==0.17.1+cpu
+torchaudio==2.2.1+cpu
+
+# Web framework
+fastapi
+uvicorn
+python-multipart
+
+# Computer vision & processing
+opencv-python
+numpy==1.23.5
+scipy
+pillow
+scikit-image
+
+# Face recognition
+insightface
+onnxruntime-gpu; platform_system != "Darwin"
+onnxruntime; platform_system == "Darwin"
+onnx>=1.12.0
+
+# Tracking dependencies
+lap
+cython-bbox
+filterpy
+
+# YOLOX dependencies (but not yolox itself - install separately)
+thop
+tabulate
+tqdm
+pycocotools
+
+# Database
+sqlalchemy
+psycopg2-binary
+pgvector
+
+# Monitoring & logging
+prometheus-client
+loguru
+
+# Additional common ML dependencies
+pyyaml
+easydict
