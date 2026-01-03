@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir "numpy==1.23.5"
 
 # Install remaining requirements
-COPY backend/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install YOLOX from git
@@ -36,6 +36,6 @@ RUN git clone https://github.com/ifzhang/ByteTrack.git /tmp/ByteTrack && \
     python3 setup.py develop
     
 WORKDIR /app
-COPY backend/ .
+COPY . .
 
 CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
