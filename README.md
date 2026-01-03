@@ -1,4 +1,5 @@
-# FACET: Face Analysis, Correlation, and Extraction Tool
+# FACET: Facial Analysis Clustering via Embedding Tracking
+
 
 FACET is a high-performance, open-source face search system designed to process video content, track individual identities, and allow for lightning-fast face retrieval using vector similarity.
 
@@ -12,7 +13,6 @@ FACET combines state-of-the-art computer vision models with a modern Next.js fro
 - **Pose-Aware Quality Scoring**: Automatically selects the best "Identity" frames by analyzing face size, sharpness, and head pose (yaw/pitch).
 - **Temporal Identity Averaging**: Generates a single, robust "Identity Vector" per track by averaging embeddings from the highest-quality samples.
 - **Instant Search**: Leverages `pgvector` for sub-millisecond similarity searches against millions of face embeddings.
-- **Premium UI**: A sleek, dark-themed Next.js interface with glassmorphism and smooth animations.
 
 ---
 
@@ -75,7 +75,7 @@ Search is powered by the **Cosine Distance** operator (`<=>`) in `pgvector`. Ins
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/facet.git
+   git clone https://github.com/B-uchi/FACET-Facial-Analysis-Clustering-via-Embedding-Tracking.git
    cd facet
    ```
 

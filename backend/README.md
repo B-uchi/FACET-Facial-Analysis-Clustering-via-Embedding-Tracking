@@ -53,6 +53,7 @@ Powered by **PostgreSQL** and **pgvector** for lightning-fast similarity lookups
 3.  Configure Environment:
     ```bash
     export DATABASE_URL="postgresql://user:pass@localhost:5432/facet"
+    export CORS_ORIGINS="http://localhost:3000,http://yourdomain.com"
     ```
 4.  Run the server:
     ```bash

@@ -25,12 +25,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN git clone https://github.com/Megvii-BaseDetection/YOLOX.git /tmp/YOLOX && \
     cd /tmp/YOLOX && pip install -e .
 
-# # Install ByteTrack properly
-# RUN git clone https://github.com/ifzhang/ByteTrack.git /tmp/ByteTrack && \
-#     cd /tmp/ByteTrack && \
-#     sed -i 's/numpy==1.23.5/numpy<2.0.0/g' requirements.txt && \
-#     pip install -r requirements.txt && \
-#     python3 setup.py develop
 # Install ByteTrack properly by stripping strict ONNX requirements
 RUN git clone https://github.com/ifzhang/ByteTrack.git /tmp/ByteTrack && \
     cd /tmp/ByteTrack && \
@@ -44,4 +38,4 @@ RUN git clone https://github.com/ifzhang/ByteTrack.git /tmp/ByteTrack && \
 WORKDIR /app
 COPY . .
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
