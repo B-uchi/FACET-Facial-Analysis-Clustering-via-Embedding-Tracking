@@ -2,4 +2,3 @@ build:
   docker:
     web:
       dockerfile: backend/Dockerfile
-      context: backend
