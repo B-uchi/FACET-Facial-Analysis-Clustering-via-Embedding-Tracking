@@ -1,7 +1,6 @@
 import os
 import uuid
 import shutil
-import tempfile
 import warnings
 
 warnings.filterwarnings("ignore", category=FutureWarning, module="insightface")
@@ -43,7 +42,6 @@ with engine.connect() as conn:
 
 Base.metadata.create_all(engine)
 
-# Migration: Add filename column to media if it exists but is missing the column
 with engine.connect() as conn:
     try:
         conn.execute(text("ALTER TABLE media ADD COLUMN filename VARCHAR"))
@@ -58,10 +56,12 @@ with engine.connect() as conn:
 
 app = FastAPI(title="FACET Engine")
 
+origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -91,7 +91,7 @@ def decode_image(data: bytes):
     return img
 
 # -------------------------------------------------------------------
-# Health / Metrics
+# Health / Metrics: TO DO LATER
 # -------------------------------------------------------------------
 
 @app.get("/health")
@@ -160,20 +160,21 @@ async def upload_media(file: UploadFile = File(...)):
         finalized = finalize_tracks(raw_tracks)
         print(f"Finalized {len(finalized)} tracks for {media_id}")
 
-        for track_id, samples, embeddings in finalized:
+        for track_id, samples, mean_emb in finalized:
             start_ts = min(s[0] for s in samples)
             end_ts = max(s[0] for s in samples)
 
             track = FaceTrack(
                 media_id=media_id,
                 start_ts=start_ts,
-                end_ts=end_ts
+                end_ts=end_ts,
+                mean_embedding=mean_emb.tolist()
             )
             session.add(track)
-            session.flush()  # get track.id
+            session.flush()
 
-            print(f"Saving track {track.id} with {len(embeddings)} embeddings")
-            for emb in embeddings:
+            print(f"Saving track {track.id} with {len(samples)} individual embeddings")
+            for ts, emb, score in samples:
                 session.add(
                     FaceEmbedding(
                         track_id=track.id,
@@ -200,7 +201,7 @@ async def delete_media(media_id: str):
         if not m:
             raise HTTPException(404, "Media not found")
 
-        # Delete the file from storage
+        # Delete from storage
         path = os.path.join(UPLOAD_DIR, m.filename)
         if os.path.exists(path):
             os.remove(path)
@@ -208,7 +209,6 @@ async def delete_media(media_id: str):
         else:
             print(f"File {path} not found on disk, skipping file deletion.")
 
-        # Delete from DB (cascading handles tracks and embeddings)
         session.delete(m)
         session.commit()
         print(f"Deleted media record {media_id} and associated data from DB.")
@@ -235,34 +235,65 @@ async def search_face(
         if query_emb is None:
             raise HTTPException(400, "No face detected")
 
-        # Use CAST(:q AS vector) instead of :q::vector
+        # Retrieve top K candidates (K=10)
         query = text("""
             SELECT
+                ft.id,
                 ft.start_ts,
-                fe.embedding <=> CAST(:q AS vector) AS dist
-            FROM face_embeddings fe
-            JOIN face_tracks ft ON ft.id = fe.track_id
+                ft.mean_embedding <=> CAST(:q AS vector) AS dist
+            FROM face_tracks ft
             WHERE ft.media_id = :mid
             ORDER BY dist
-            LIMIT 1
+            LIMIT 10
         """)
 
-        # query_emb.tolist() is correct; pgvector needs a standard list
-        row = session.execute(
+        candidates = session.execute(
             query,
             {
                 "q": query_emb.tolist(),
                 "mid": media_id
             }
-        ).fetchone()
+        ).fetchall()
 
-        # Handle the result
-        if row and row.dist < 0.35:
-            return {
-                "found": True,
-                "timestamp": float(row.start_ts),
-                "distance": float(row.dist)
-            }
+        if not candidates:
+            return {"found": False, "reason": "No faces in media"}
+
+        # Stage 2: Verification
+        best_match = None
+        
+        for cand in candidates:
+            # Skip if ANN distance is already too high
+            if cand.dist > 0.45:
+                continue
+
+            # Fetch all embeddings for this track
+            embs = session.query(FaceEmbedding).filter(FaceEmbedding.track_id == cand.id).all()
+            
+            distances = []
+            for e in embs:
+                dist = 1.0 - np.dot(query_emb, np.array(e.embedding))
+                distances.append(dist)
+            
+            if not distances:
+                continue
+
+            mean_dist = np.mean(distances)
+            count_strong = sum(1 for d in distances if d < 0.40)
+
+            # Accept a match only if:
+            # mean(cosine_distance) < 0.45
+            # AND at least 2 embeddings satisfy cosine_distance < 0.40
+            if mean_dist < 0.45 and count_strong >= 2:
+                if best_match is None or mean_dist < best_match["distance"]:
+                    best_match = {
+                        "found": True,
+                        "timestamp": float(cand.start_ts),
+                        "distance": float(mean_dist),
+                        "track_id": cand.id
+                    }
+
+        if best_match:
+            return best_match
 
         return {
             "found": False,
@@ -270,7 +301,6 @@ async def search_face(
         }
 
     except Exception as e:
-        # It's good practice to log the error here
         print(f"Search Error: {e}")
         raise HTTPException(500, "Internal search error")
 

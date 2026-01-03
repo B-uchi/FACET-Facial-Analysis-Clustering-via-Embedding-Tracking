@@ -17,6 +17,7 @@ class FaceTrack(Base):
     media_id = Column(String, ForeignKey("media.id", ondelete="CASCADE"))
     start_ts = Column(Float)
     end_ts = Column(Float)
+    mean_embedding = Column(Vector(512))
 
 class FaceEmbedding(Base):
     __tablename__ = "face_embeddings"
@@ -25,8 +26,8 @@ class FaceEmbedding(Base):
     embedding = Column(Vector(512))
 
 Index(
-    "face_embedding_ann_idx",
-    FaceEmbedding.embedding,
+    "face_track_mean_ann_idx",
+    FaceTrack.mean_embedding,
     postgresql_using="ivfflat",
     postgresql_with={"lists": 100}
 )

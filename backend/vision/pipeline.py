@@ -101,7 +101,8 @@ def finalize_tracks(tracks):
         top_samples = sorted_samples[:5]
         
         embeddings = [s[1] for s in top_samples if s[1] is not None]
-        valid_samples = [(s[0], None, s[2]) for s in top_samples if s[1] is not None]
+        # Return (timestamp, embedding, score) for each sample
+        valid_samples = [(s[0], s[1], s[2]) for s in top_samples if s[1] is not None]
         
         if embeddings:
             # Average and normalize embeddings
@@ -110,7 +111,8 @@ def finalize_tracks(tracks):
             if norm > 1e-6:
                 avg_emb = avg_emb / norm
             
-            finalized.append((track_id, valid_samples, [avg_emb]))
+            # Return track info, individual embeddings samples, and the mean embedding
+            finalized.append((track_id, valid_samples, avg_emb))
         else:
             print(f"Track {track_id} has no valid embeddings.")
             
